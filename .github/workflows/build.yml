@@ -1,4 +1,4 @@
-name: Build Custom RustDesk (No Relay)
+name: Build Custom RustDesk (No Relay + vcpkg)
 
 on:
   workflow_dispatch:
@@ -15,6 +15,21 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # ✅ نصب vcpkg و ست کردن VCPKG_ROOT
+      - name: Setup vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg "$env:GITHUB_WORKSPACE\vcpkg"
+          & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
+          "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # ✅ نصب وابستگی‌ها (حداقل opus لازم است؛ بقیه را هم می‌گذاریم که بعداً گیر نکنید)
+      - name: Install deps via vcpkg
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
+
+      # ✅ هاردکد کردن hbbs + key و خالی کردن relay
       - name: Patch Server Settings (hardcode hbbs, empty relay)
         shell: pwsh
         env:
@@ -25,19 +40,16 @@ jobs:
           foreach ($f in $files) {
             $c = Get-Content $f.FullName -Raw
 
-            # hbbs (ID server)
             $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RENDEZVOUS_SERVER\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RENDEZVOUS_SERVER: &str = `"$env:RENDEZVOUS_SERVER`";"
-
-            # relay: empty (no hbbr)
             $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RELAY_SERVER\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RELAY_SERVER: &str = `"`";"
-
-            # server public key
             $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RS_PUB_KEY\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RS_PUB_KEY: &str = `"$env:RS_PUB_KEY`";"
 
             Set-Content -Path $f.FullName -Value $c -Encoding UTF8
           }
 
+      # ✅ بیلد
       - name: Build RustDesk
+        shell: pwsh
         run: cargo build --release
 
       - name: Upload EXE
