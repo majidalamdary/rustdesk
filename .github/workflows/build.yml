@@ -1,0 +1,47 @@
+name: Build Custom RustDesk (No Relay)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Patch Server Settings (hardcode hbbs, empty relay)
+        shell: pwsh
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+        run: |
+          $files = Get-ChildItem -Recurse -File -Path libs -Filter config.rs
+          foreach ($f in $files) {
+            $c = Get-Content $f.FullName -Raw
+
+            # hbbs (ID server)
+            $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RENDEZVOUS_SERVER\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RENDEZVOUS_SERVER: &str = `"$env:RENDEZVOUS_SERVER`";"
+
+            # relay: empty (no hbbr)
+            $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RELAY_SERVER\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RELAY_SERVER: &str = `"`";"
+
+            # server public key
+            $c = $c -replace '(?m)^\s*pub\s+const\s+DEFAULT_RS_PUB_KEY\s*:\s*&str\s*=\s*".*?";\s*$', "pub const DEFAULT_RS_PUB_KEY: &str = `"$env:RS_PUB_KEY`";"
+
+            Set-Content -Path $f.FullName -Value $c -Encoding UTF8
+          }
+
+      - name: Build RustDesk
+        run: cargo build --release
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-custom-no-relay
+          path: target\release\rustdesk.exe
