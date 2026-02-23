@@ -28,7 +28,7 @@ jobs:
         shell: pwsh
         run: |
           & "$env:VCPKG_ROOT\vcpkg.exe" install
-
+          
       - name: Patch Server Settings (hardcode hbbs, empty relay)
         shell: pwsh
         env:
