@@ -1,4 +1,4 @@
-name: Build Custom RustDesk (No Relay + vcpkg manifest)
+name: Build Custom RustDesk (No Relay + vcpkg static)
 
 on:
   workflow_dispatch:
@@ -15,18 +15,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup vcpkg
+      - name: Setup vcpkg (manifest + static)
         shell: pwsh
         run: |
           git clone https://github.com/microsoft/vcpkg "$env:GITHUB_WORKSPACE\vcpkg"
           & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
           "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VCPKG_FEATURE_FLAGS=manifests" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_DEFAULT_TRIPLET=x64-windows-static" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Install deps via vcpkg (manifest mode)
+      - name: Install deps via vcpkg (manifest)
         shell: pwsh
         run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows
+          & "$env:VCPKG_ROOT\vcpkg.exe" install
 
       - name: Patch Server Settings (hardcode hbbs, empty relay)
         shell: pwsh
