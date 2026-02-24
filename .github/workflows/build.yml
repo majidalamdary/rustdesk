@@ -37,13 +37,33 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
           flutter doctor -v
-
       - name: Install vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Override NASM to 2.16.03 (fix aom multipass & ninja test)
+        env:
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
+        run: |
+          # Clean any existing NASM download
+          Remove-Item -Path "$env:VCPKG_ROOT\downloads\tools\nasm" -Recurse -Force -ErrorAction SilentlyContinue
+          # Download compatible NASM 2.16.03
+          Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip" -OutFile nasm.zip
+          Expand-Archive -Path nasm.zip -DestinationPath "$env:VCPKG_ROOT\downloads\tools\nasm"
+          # Place nasm.exe where vcpkg expects it (in a subdir like nasm-2.16.03, but flatten if needed)
+          New-Item -ItemType Directory -Force -Path "$env:VCPKG_ROOT\downloads\tools\nasm\nasm-2.16.03" | Out-Null
+          Move-Item -Path "$env:VCPKG_ROOT\downloads\tools\nasm\nasm.exe" -Destination "$env:VCPKG_ROOT\downloads\tools\nasm\nasm-2.16.03\nasm.exe" -Force
+          # Optional: Also place ndisasm etc. if present in zip, but nasm.exe is main
+          Write-Output "NASM overridden to 2.16.03"
+
+      - name: Install dependencies (keep x64-windows or try static again)
+        env:
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows --clean-after-build
+          # If you want to retry static after NASM fix: change to --triplet x64-windows-static
       - name: Install dependencies (dynamic to fix aom/NASM error)
         env:
           VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
