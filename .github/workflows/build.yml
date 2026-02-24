@@ -1,16 +1,14 @@
 name: Build RustDesk Windows x64 Custom
 
 on:
-  workflow_dispatch:  # دستی اجرا کنید (یا push به master اضافه کنید)
-  # push:
-  #   branches: [ master ]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  DEFAULT_RENDEZVOUS_SERVER: "your-server-ip-or-domain:21116"  # پیش‌فرض اگر secret نباشد
-  DEFAULT_RS_PUB_KEY: "your_public_key_here"                   # پیش‌فرض (تغییر دهید)
+  DEFAULT_RENDEZVOUS_SERVER: "your-server-ip-or-domain:21116"  # تغییر دهید یا از secrets استفاده کنید
+  DEFAULT_RS_PUB_KEY: "your_public_key_here"                  # تغییر دهید
 
 jobs:
   build-windows-x64:
@@ -41,13 +39,19 @@ jobs:
           flutter --version
           flutter doctor -v
 
-      - name: Install vcpkg and dependencies
+      - name: Install vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $pkgs = @('libvpx:x64-windows-static','libyuv:x64-windows-static','opus:x64-windows-static','aom:x64-windows-static')
-          & $env:USERPROFILE\vcpkg\vcpkg.exe install $pkgs
+
+      - name: Install dependencies via manifest (vcpkg.json)
+        env:
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows-static
+          # اگر نیاز به feature خاصی بود: --x-feature=some-feature
+          # اما برای RustDesk معمولاً بدون گزینه کافی است
 
       - name: Download Sciter DLL
         run: |
