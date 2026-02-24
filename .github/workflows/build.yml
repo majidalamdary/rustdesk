@@ -24,7 +24,7 @@ jobs:
           "VCPKG_FEATURE_FLAGS=manifests" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VCPKG_DEFAULT_TRIPLET=x64-windows-static" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      # Add Debug step to list headers and ensure opus files are included
+      # Debug step to check for opus headers
       - name: Debug opus headers
         shell: pwsh
         run: |
@@ -42,7 +42,7 @@ jobs:
       - name: Install deps via vcpkg (manifest)
         shell: pwsh
         run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install
+          & "$env:GITHUB_WORKSPACE\vcpkg\vcpkg.exe" install
 
       # Apply patches for server configuration
       - name: Patch Server Settings (hardcode hbbs, empty relay)
