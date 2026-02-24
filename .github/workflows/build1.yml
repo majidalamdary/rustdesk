@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest  # برای اجرای روی ویندوز (می‌توانید از ubuntu-latest هم استفاده کنید)
+    runs-on: windows-latest  # برای اجرای روی ویندوز
 
     steps:
     - name: Checkout repository
@@ -22,9 +22,9 @@ jobs:
       run: |
         git clone https://github.com/microsoft/vcpkg.git D:/vcpkg  # کپی vcpkg از گیت‌هاب
         cd D:/vcpkg
-        ./vcpkg install  # اجرای دستور برای نصب وابستگی‌ها
+        .\vcpkg install  # استفاده از دات‌اسلش برای ویندوز
 
     - name: Build project
       run: |
         cd D:/vcpkg
-        ./vcpkg install
+        .\vcpkg install  # نصب وابستگی‌ها
