@@ -50,7 +50,7 @@ jobs:
           VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
           VCPKG_PREFER_NINJA: "OFF"  # جلوگیری از مشکل ninja -v در aom
         run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows-static --clean-after-build
+          run: & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows --clean-after-build
           # اگر همچنان مشکل aom داشت، --triplet x64-windows را تست کنید (dynamic)
 
       - name: Download Sciter DLL (برای GUI ویندوزی)
