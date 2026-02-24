@@ -24,11 +24,27 @@ jobs:
           "VCPKG_FEATURE_FLAGS=manifests" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VCPKG_DEFAULT_TRIPLET=x64-windows-static" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      # Add Debug step to list headers and ensure opus files are included
+      - name: Debug opus headers
+        shell: pwsh
+        run: |
+          Write-Host "=== Checking for opus_multistream.h in vcpkg directories ==="
+          dir "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\include" -Recurse -Filter "opus_multistream.h" -ErrorAction SilentlyContinue
+          Write-Host "=== Checking if opus folder exists in static triplet ==="
+          if (Test-Path "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\include\opus") {
+            dir "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\include\opus" | Select-Object Name
+          } else {
+            Write-Host "NO opus include dir in static triplet!"
+          }
+          Write-Host "=== Checking in host triplet ==="
+          dir "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\include" -Recurse -Filter "opus_multistream.h" -ErrorAction SilentlyContinue
+
       - name: Install deps via vcpkg (manifest)
         shell: pwsh
         run: |
           & "$env:VCPKG_ROOT\vcpkg.exe" install
-          
+
+      # Apply patches for server configuration
       - name: Patch Server Settings (hardcode hbbs, empty relay)
         shell: pwsh
         env:
@@ -44,10 +60,15 @@ jobs:
             Set-Content -Path $f.FullName -Value $c -Encoding UTF8
           }
 
+      # Build RustDesk
       - name: Build RustDesk
         shell: pwsh
+        env:
+          C_INCLUDE_PATH: ${{ github.workspace }}\vcpkg\installed\x64-windows\include;${{ github.workspace }}\vcpkg\installed\x64-windows-static\include
+          CPLUS_INCLUDE_PATH: ${{ github.workspace }}\vcpkg\installed\x64-windows\include;${{ github.workspace }}\vcpkg\installed\x64-windows-static\include
         run: cargo build --release
 
+      # Upload EXE
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
