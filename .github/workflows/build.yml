@@ -13,7 +13,7 @@ jobs:
           submodules: recursive
 
       - name: Cache vcpkg dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3  # تغییر از v2 به v3
         with:
           path: |
             ${{ github.workspace }}/vcpkg/downloads
