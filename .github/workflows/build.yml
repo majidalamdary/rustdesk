@@ -12,6 +12,17 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Cache vcpkg dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg/downloads
+            ${{ github.workspace }}/vcpkg/installed
+            ${{ github.workspace }}/vcpkg/buildtrees
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
