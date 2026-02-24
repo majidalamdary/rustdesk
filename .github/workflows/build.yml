@@ -12,8 +12,9 @@ jobs:
         with:
           submodules: recursive
 
+      # Cache vcpkg dependencies to speed up subsequent builds
       - name: Cache vcpkg dependencies
-        uses: actions/cache@v3  # تغییر از v2 به v3
+        uses: actions/cache@v3  # Updating from v2 to v3
         with:
           path: |
             ${{ github.workspace }}/vcpkg/downloads
@@ -23,6 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
+      # Install Ninja (latest version)
       - name: Install Ninja (latest)
         shell: pwsh
         run: |
@@ -30,6 +32,7 @@ jobs:
           Expand-Archive ninja.zip -DestinationPath $env:USERPROFILE\bin
           $env:PATH += ";$env:USERPROFILE\bin"
 
+      # Install CMake (latest version)
       - name: Install CMake (latest)
         shell: pwsh
         run: |
@@ -37,9 +40,11 @@ jobs:
           Expand-Archive cmake.zip -DestinationPath $env:USERPROFILE\bin
           $env:PATH += ";$env:USERPROFILE\bin"
 
+      # Install Rust toolchain
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Setup vcpkg (manifest mode + static triplet)
       - name: Setup vcpkg (manifest + static)
         shell: pwsh
         run: |
@@ -64,6 +69,7 @@ jobs:
           Write-Host "=== Checking in host triplet ==="
           dir "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\include" -Recurse -Filter "opus_multistream.h" -ErrorAction SilentlyContinue
 
+      # Install dependencies via vcpkg (manifest)
       - name: Install deps via vcpkg (manifest)
         shell: pwsh
         run: |
