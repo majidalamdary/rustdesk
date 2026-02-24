@@ -23,6 +23,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
+      - name: Install Ninja (latest)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-win.zip -OutFile ninja.zip
+          Expand-Archive ninja.zip -DestinationPath $env:USERPROFILE\bin
+          $env:PATH += ";$env:USERPROFILE\bin"
+
+      - name: Install CMake (latest)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/Kitware/CMake/releases/download/v3.31.10/cmake-3.31.10-windows-x86_64.zip -OutFile cmake.zip
+          Expand-Archive cmake.zip -DestinationPath $env:USERPROFILE\bin
+          $env:PATH += ";$env:USERPROFILE\bin"
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
