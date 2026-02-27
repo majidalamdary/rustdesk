@@ -1,4 +1,4 @@
-name: Install vcpkg Dependencies
+name: vcpkg (manifest) install
 
 on:
   push:
@@ -8,24 +8,30 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up CMake
         uses: supercomputech/setup-cmake@v1
         with:
-          cmake-version: '3.31.10'
+          cmake-version: "3.31.10"
 
-      - name: Install vcpkg
+      # اگر vcpkg داخل ریپو هست (مثل rustdesk/vcpkg) این بخش درست است
+      - name: Bootstrap vcpkg
         shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git D:\vcpkg
-          cd D:\vcpkg
+          cd "$env:GITHUB_WORKSPACE\vcpkg"
           .\bootstrap-vcpkg.bat
 
-      - name: Run vcpkg install (manifest or explicit)
+      # نصب وابستگی‌ها از روی vcpkg.json (manifest) => باید از ریشه پروژه اجرا شود
+      - name: Install dependencies (manifest)
         shell: pwsh
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+          VCPKG_DEFAULT_TRIPLET: x64-windows-static
+          VCPKG_FEATURE_FLAGS: manifests
         run: |
-          cd D:\vcpkg
-          .\vcpkg.exe --version
+          cd "$env:GITHUB_WORKSPACE"
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet $env:VCPKG_DEFAULT_TRIPLET --clean-after-build
