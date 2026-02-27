@@ -1,0 +1,20 @@
+name: Search hbbs/public_key locations
+
+on:
+  workflow_dispatch:
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Search
+        run: |
+          rg -n "rendezvous|hbbs|public_key|key|RENDEZVOUS" .
