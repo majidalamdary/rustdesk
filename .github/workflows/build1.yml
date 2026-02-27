@@ -13,19 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up CMake
-        uses: supercomputech/setup-cmake@v1
-        with:
-          cmake-version: "3.31.10"
-
-      # اگر vcpkg داخل ریپو هست (مثل rustdesk/vcpkg) این بخش درست است
       - name: Bootstrap vcpkg
         shell: pwsh
         run: |
           cd "$env:GITHUB_WORKSPACE\vcpkg"
           .\bootstrap-vcpkg.bat
 
-      # نصب وابستگی‌ها از روی vcpkg.json (manifest) => باید از ریشه پروژه اجرا شود
       - name: Install dependencies (manifest)
         shell: pwsh
         env:
