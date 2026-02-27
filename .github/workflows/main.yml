@@ -8,15 +8,23 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      # --------------------------------
-      # Flutter (نسخه صحیح برای RustDesk)
-      # --------------------------------
+      # ---------------------------
+      # Install Rust
+      # ---------------------------
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      # ---------------------------
+      # Setup Flutter
+      # ---------------------------
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -27,24 +35,22 @@ jobs:
       - name: Flutter doctor
         run: flutter doctor -v
 
-      # --------------------------------
-      # Resolve dependencies
-      # --------------------------------
+      # ---------------------------
+      # Rust build (GENERATES BRIDGE)
+      # ---------------------------
+      - name: Cargo build (generate bridge)
+        run: cargo build --release
+
+      # ---------------------------
+      # Flutter pub get
+      # ---------------------------
       - name: Flutter pub get
         working-directory: flutter
         run: flutter pub get
 
-      # --------------------------------
-      # Generate bridge (خیلی مهم)
-      # --------------------------------
-      - name: Generate Rust bridge
-        working-directory: flutter
-        run: |
-          flutter pub run build_runner build --delete-conflicting-outputs
-
-      # --------------------------------
-      # Verify generated file
-      # --------------------------------
+      # ---------------------------
+      # Verify bridge
+      # ---------------------------
       - name: Check generated_bridge.dart
         shell: pwsh
         run: |
@@ -55,24 +61,24 @@ jobs:
             exit 1
           }
 
-      # --------------------------------
-      # Enable Windows desktop
-      # --------------------------------
+      # ---------------------------
+      # Enable Windows
+      # ---------------------------
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
-      # --------------------------------
-      # Build Windows Release
-      # --------------------------------
+      # ---------------------------
+      # Build Windows
+      # ---------------------------
       - name: Build Windows EXE
         working-directory: flutter
         run: flutter build windows --release
 
-      # --------------------------------
-      # Upload output
-      # --------------------------------
-      - name: Upload EXE artifact
+      # ---------------------------
+      # Upload artifact
+      # ---------------------------
+      - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows-build
+          name: rustdesk-windows
           path: flutter/build/windows/x64/runner/Release/**
