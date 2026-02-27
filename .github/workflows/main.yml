@@ -18,7 +18,17 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+      - name: Show flutter version files
+        shell: pwsh
+        run: |
+          Write-Host "List flutter folder:"
+          Get-ChildItem "$env:GITHUB_WORKSPACE\flutter" -Force | Select-Object Name
+          if (Test-Path "$env:GITHUB_WORKSPACE\flutter\.flutter-version") {
+            Write-Host ".flutter-version:"
+            Get-Content "$env:GITHUB_WORKSPACE\flutter\.flutter-version"
+          } else {
+            Write-Host "No flutter/.flutter-version found"
+          }
       # Rust toolchain
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
