@@ -18,17 +18,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-      - name: Show flutter version files
-        shell: pwsh
-        run: |
-          Write-Host "List flutter folder:"
-          Get-ChildItem "$env:GITHUB_WORKSPACE\flutter" -Force | Select-Object Name
-          if (Test-Path "$env:GITHUB_WORKSPACE\flutter\.flutter-version") {
-            Write-Host ".flutter-version:"
-            Get-Content "$env:GITHUB_WORKSPACE\flutter\.flutter-version"
-          } else {
-            Write-Host "No flutter/.flutter-version found"
-          }
+
       # Rust toolchain
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -45,10 +35,11 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
 
       # Flutter SDK
-      - name: Setup Flutter
+      - name: Setup Flutter (pinned)
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: "3.19.6"
+          channel: "stable"
           cache: true
 
       - name: Flutter doctor
@@ -91,7 +82,25 @@ jobs:
       - name: Flutter pub get
         working-directory: flutter
         run: flutter pub get
-
+      - name: Detect codegen steps
+        shell: pwsh
+        working-directory: flutter
+        run: |
+          Write-Host "Searching for generator scripts..."
+          Get-ChildItem -Recurse -Force -File | Where-Object { $_.Name -match "build\.dart|build_runner|ffigen|flutter_rust_bridge|codegen|gen" } | Select-Object FullName
+      - name: Run codegen (build_runner)
+        working-directory: flutter
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Verify generated_bridge.dart
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:GITHUB_WORKSPACE\flutter\lib\generated_bridge.dart") {
+            Write-Host "OK: generated_bridge.dart exists"
+          } else {
+            Write-Host "ERROR: generated_bridge.dart NOT found"
+            exit 1
+          }
+      
       - name: Build Windows (Release)
         working-directory: flutter
         run: flutter build windows --release
