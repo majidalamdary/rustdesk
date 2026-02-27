@@ -1,0 +1,100 @@
+name: Build RustDesk Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main,master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # Rust toolchain
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      # Flutter SDK
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      # (Optional but often needed) MSVC build tools are already on windows-2022 runner.
+      # If your repo uses vcpkg.json, RustDesk usually manages deps itself,
+      # but if you need vcpkg, enable the block below.
+
+      # -------------------------
+      # Optional: vcpkg install
+      # -------------------------
+      # - name: Setup vcpkg
+      #   shell: pwsh
+      #   run: |
+      #     git clone https://github.com/microsoft/vcpkg $env:GITHUB_WORKSPACE\vcpkg
+      #     cd $env:GITHUB_WORKSPACE\vcpkg
+      #     .\bootstrap-vcpkg.bat
+      #     .\vcpkg version
+      #
+      # - name: vcpkg install (manifest)
+      #   shell: pwsh
+      #   run: |
+      #     cd $env:GITHUB_WORKSPACE
+      #     if (Test-Path ".\vcpkg.json") {
+      #       $env:VCPKG_ROOT="$env:GITHUB_WORKSPACE\vcpkg"
+      #       .\vcpkg\vcpkg install --triplet x64-windows
+      #     } else {
+      #       Write-Host "No vcpkg.json found, skip."
+      #     }
+
+      # Build flutter windows
+      - name: Enable flutter windows desktop
+        run: flutter config --enable-windows-desktop
+
+      # IMPORTANT:
+      # RustDesk repos typically have flutter project under ./flutter
+      # We build that. If your flutter folder differs, adjust paths.
+
+      - name: Flutter pub get
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Build Windows (Release)
+        working-directory: flutter
+        run: flutter build windows --release
+
+      # Collect artifacts
+      - name: Locate EXE
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter "*.exe" "$env:GITHUB_WORKSPACE\flutter\build\windows\x64\runner\Release" | Select-Object -First 20
+          $exe | ForEach-Object { Write-Host "FOUND: $($_.FullName)" }
+
+      - name: Upload Artifact (Release folder)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-windows-release
+          path: flutter/build/windows/x64/runner/Release/**
